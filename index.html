@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TUPA - Municipalidad de Puno</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS (revisa que la ruta sea correcta) -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- El resto del HTML permanece igual -->
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="images/logo_municipalidad.png" alt="Logo" class="me-2" style="height: 40px;">
+                <span>Municipalidad de Puno</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#requisitos">Requisitos de TUPA</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="public/login.php">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1>Sistema de Consulta TUPA</h1>
+            <p>Accede de manera rápida y sencilla a todos los procedimientos y requisitos administrativos</p>
+            <div class="search-bar">
+                <input type="text" id="buscar" placeholder="Buscar un procedimiento...">
+                <button onclick="buscarRequisitos()">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Content Section -->
+    <section id="requisitos" class="content">
+        <div class="container">
+            <h2>Requisitos de TUPA</h2>
+            <div id="resultados"></div>
+        </div>
+    </section>
+
+    <!-- Modal -->
+    <div class="modal fade" id="requisitoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ver Documento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="pdfViewer" style="width: 100%; height: 500px;" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-4 text-center">
+                    <h5 class="mb-4">Contáctenos</h5>
+                    <p>
+                        <a href="mailto:info@municipalidadpuno.gob.pe" class="d-block mb-2">
+                            <i class="fas fa-envelope"></i> info@municipalidadpuno.gob.pe
+                        </a>
+                    </p>
+                    <p class="mb-2">
+                        <i class="fas fa-map-marker-alt"></i> Jr. Deustua 458, Puno, Perú
+                    </p>
+                    <p>
+                        <i class="fas fa-phone"></i> (051) 601000
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function buscarRequisitos() {
+            const query = document.getElementById('buscar').value;
+    
+            if (!query) {
+                alert('Por favor ingrese un término de búsqueda.');
+                return;
+            }
+    
+            $.ajax({
+                url: 'config/buscar_requisitos.php',
+                type: 'POST',
+                data: { query: query },
+                dataType: 'json',
+                success: function(response) {
+                    let resultsHtml = '';
+                    $('#resultados').html('');
+    
+                    if (response.status === 'error') {
+                        resultsHtml = '<p>Error: ' + response.message + '</p>';
+                    } else if (response.data.length === 0) {
+                        resultsHtml = '<p>No se encontraron resultados.</p>';
+                    } else {
+                        response.data.forEach(function(proc) {
+                            resultsHtml += `
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5>${proc.procedimiento.nombre} <span class="d-block d-md-inline">(Código: ${proc.procedimiento.codigo})</span></h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Plazo de atención:</strong> ${proc.procedimiento.plazo}</p>
+                                    <p><strong>Costo del trámite:</strong> ${proc.procedimiento.costo}</p>
+                                    <p><strong>Descripción:</strong> ${proc.procedimiento.descripcion}</p>`;
+    
+                            if (proc.oficinas.length > 0) {
+                                resultsHtml += `<h6>Oficinas:</h6><ul>`;
+                                proc.oficinas.forEach(oficina => {
+                                    resultsHtml += `<li>${oficina.nombre_oficina} - ${oficina.direccion}</li>`;
+                                });
+                                resultsHtml += `</ul>`;
+                            }
+    
+                            if (proc.requisitos && proc.requisitos.length > 0) {
+    const requisitosUnicos = new Set(); // Set para almacenar requisitos únicos
+    let contador = 1; // Contador para enumerar los requisitos
+    resultsHtml += `<h6>Requisitos:</h6><ul class="list-group">`;
+
+    proc.requisitos.forEach(requisito => {
+        const requisitoTexto = requisito.descripcion.trim(); // Obtenemos la descripción como texto único
+
+        // Comprobamos si el requisito ya existe en el Set
+        if (!requisitosUnicos.has(requisitoTexto)) {
+            resultsHtml += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>${contador}. ${requisitoTexto}</span> 
+                    ${requisito.documento && requisito.documento.url ? 
+                        `<button class="btn btn-primary btn-sm ver-requisito"
+                            data-pdf="${requisito.documento.url}">
+                            <i class="fas fa-eye"></i> Ver Detalles
+                        </button>` : ''
+                    }
+                </li>`;
+            requisitosUnicos.add(requisitoTexto); // Agregamos el requisito al Set para evitar duplicados
+            contador++; // Incrementamos el contador para el siguiente requisito
+        }
+    });
+    resultsHtml += `</ul>`;
+}
+
+    
+                            if (proc.notas.length > 0) {
+                                resultsHtml += `<h6>Notas:</h6><ul>`;
+                                proc.notas.forEach(nota => {
+                                    resultsHtml += `<li><strong>${nota.codigo_nota}:</strong> ${nota.descripcion}</li>`;
+                                });
+                                resultsHtml += `</ul>`;
+                            }
+    
+                            if (proc.documentos.length > 0) {
+                                resultsHtml += `<h6>Documentos:</h6><ul>`;
+                                proc.documentos.forEach(doc => {
+                                    resultsHtml += `<li><strong>${doc.codigo_documento}:</strong> ${doc.nombre_documento} (${doc.formato_documento})`;
+                                    resultsHtml += ` <a href="${doc.ruta_documento}" target="_blank">Ver Documento</a></li>`;
+                                });
+                                resultsHtml += `</ul>`;
+                            }
+    
+                            resultsHtml += `</div></div>`;
+                        });
+                    }
+    
+                    $('#resultados').html(resultsHtml);
+    
+                    $('.ver-requisito').on('click', function() {
+                        const pdfUrl = $(this).data('pdf');
+                        mostrarPDF(pdfUrl);
+                    });
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error("Error en la solicitud AJAX:", textStatus, errorThrown);
+                    $('#resultados').html('<p>Error al realizar la búsqueda. Por favor, intente nuevamente.</p>');
+                }
+            });
+        }
+    
+        function mostrarPDF(url) {
+            document.getElementById('pdfViewer').src = url;
+            const pdfModal = new bootstrap.Modal(document.getElementById('requisitoModal'));
+            pdfModal.show();
+        }
+    </script>
+    
+</body>
+</html>
